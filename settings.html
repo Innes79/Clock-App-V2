@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Clock Settings</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; padding: 25px; background: #ffffff; color: #333; }
+        .card { background: #f3f3f3; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        button { width: 100%; padding: 12px; background: #0078d4; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        input[type="range"] { width: 150px; }
+    </style>
+</head>
+<body>
+    <h2>Customization</h2>
+    <div class="card">
+        <div class="row"><label>Color</label><input type="color" id="colorPicker"></div>
+        <div class="row"><label>Clock Size</label><input type="range" id="sizePicker" min="0.5" max="2" step="0.1"></div>
+        <div class="row"><label>Seconds</label><input type="checkbox" id="showSeconds"></div>
+        <div class="row"><label>Date</label><input type="checkbox" id="showDate"></div>
+        <div class="row"><label>Startup</label><input type="checkbox" id="startup"></div>
+        <div class="row">
+            <label>Timezone</label>
+            <select id="timezone">
+                <option value="local">Local</option>
+                <option value="UTC">UTC</option>
+                <option value="America/New_York">New York</option>
+                <option value="Europe/London">London</option>
+                <option value="Asia/Tokyo">Tokyo</option>
+            </select>
+        </div>
+    </div>
+    <button id="saveBtn">Save & Apply</button>
+    <script>
+        const { ipcRenderer } = require('electron');
+        const current = ipcRenderer.sendSync('get-settings');
+        
+        document.getElementById('colorPicker').value = current.color;
+        document.getElementById('sizePicker').value = current.size || 1;
+        document.getElementById('showSeconds').checked = current.showSeconds;
+        document.getElementById('showDate').checked = current.showDate;
+        document.getElementById('startup').checked = current.startup;
+        document.getElementById('timezone').value = current.timezone;
+
+        document.getElementById('saveBtn').addEventListener('click', () => {
+            ipcRenderer.send('save-settings', {
+                color: document.getElementById('colorPicker').value,
+                size: parseFloat(document.getElementById('sizePicker').value),
+                showSeconds: document.getElementById('showSeconds').checked,
+                showDate: document.getElementById('showDate').checked,
+                startup: document.getElementById('startup').checked,
+                timezone: document.getElementById('timezone').value
+            });
+            window.close();
+        });
+    </script>
+</body>
+</html>

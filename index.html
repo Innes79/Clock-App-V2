@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Transparent Clock</title>
+    <link href="https://fonts.googleapis.com/css2?family=Audiowide&family=Orbitron&display=swap" rel="stylesheet" />
+    <style>
+        html, body { 
+            margin: 0; padding: 0; 
+            height: 100%; width: 100%;
+            background: transparent; 
+            display: flex; justify-content: center; align-items: center; 
+            -webkit-app-region: drag; 
+            user-select: none; overflow: hidden; 
+            transition: color 0.3s;
+            position: relative;
+        }
+        
+        #clock-container {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 15px 30px; /* Space for the gear to breathe */
+        }
+
+        #clock { 
+            font-size: 4.5rem; 
+            font-family: 'Audiowide', cursive; 
+            margin: 0; 
+            line-height: 1;
+            text-shadow: 2px 2px 8px rgba(0,0,0,0.5);
+            white-space: nowrap;
+        }
+
+        #date { 
+            font-size: 1.3rem; 
+            font-family: 'Orbitron', sans-serif; 
+            margin-top: 5px; 
+        }
+
+        #settings-btn {
+            position: absolute;
+            top: 0;
+            right: 5px;
+            color: inherit;
+            cursor: pointer;
+            font-size: 22px;
+            z-index: 100;
+            opacity: 0;
+            transition: opacity 0.2s;
+            -webkit-app-region: no-drag;
+        }
+        
+        /* The gear now appears when you hover near the clock area */
+        #clock-container:hover #settings-btn { opacity: 0.7; }
+        #settings-btn:hover { opacity: 1 !important; }
+    </style>
+</head>
+<body>
+    <div id="clock-container">
+        <div id="settings-btn">⚙️</div>
+        <div id="clock">
+            <span id="h">--</span>:<span id="m">--</span><span id="s-cont">:<span id="s">--</span></span> <span id="ap">--</span>
+        </div>
+        <div id="date">Loading...</div>
+    </div>
+
+    <script>
+        const { ipcRenderer, webFrame } = require('electron');
+        let currentSettings = { size: 1 };
+
+        ipcRenderer.on('apply-settings', (event, settings) => {
+            currentSettings = settings;
+            document.body.style.color = settings.color;
+            document.getElementById('s-cont').style.display = settings.showSeconds ? 'inline' : 'none';
+            document.getElementById('date').style.display = settings.showDate ? 'block' : 'none';
+            
+            // ZOOM is much better for alignment than SCALE
+            // It scales the coordinate system so your mouse hits the right spot
+            webFrame.setZoomFactor(settings.size || 1);
+        });
+
+        function update() {
+            const now = currentSettings.timezone === 'local' || !currentSettings.timezone
+                ? new Date() 
+                : new Date(new Date().toLocaleString("en-US", {timeZone: currentSettings.timezone}));
+
+            let hh = now.getHours();
+            const mm = now.getMinutes().toString().padStart(2, '0');
+            const ss = now.getSeconds().toString().padStart(2, '0');
+            const ampm = hh >= 12 ? 'PM' : 'AM';
+            hh = hh % 12 || 12;
+
+            document.getElementById('h').textContent = hh.toString().padStart(2, '0');
+            document.getElementById('m').textContent = mm;
+            document.getElementById('s').textContent = ss;
+            document.getElementById('ap').textContent = ampm;
+            document.getElementById('date').textContent = now.toLocaleDateString(undefined, { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
+        }
+
+        document.getElementById('settings-btn').addEventListener('click', () => ipcRenderer.send('open-settings'));
+        setInterval(update, 1000);
+        update();
+    </script>
+</body>
+</html>
